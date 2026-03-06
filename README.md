@@ -32,6 +32,14 @@ La API calcula:
 # Ejemplo de uso
 
 POST request:
+## API Endpoint
+
+POST /posts/analyze
+Analiza un post de LinkedIn y devuelve un score estimado de engagement.
+
+## DEMO
+<img width="1918" height="1017" alt="descarga" src="https://github.com/user-attachments/assets/04e37ce1-8bcb-4a20-a4ba-eb1213a7b915" />
+
 
 Body:
 
