@@ -45,9 +45,7 @@ También devuelve:
 ```bash
 POST /posts/analyze
 
- ## Demo
 
-<img width="1919" height="1033" alt="90095926-2dfb-4316-89d8-7e842286390f" src="https://github.com/user-attachments/assets/a4c2219f-2fbd-4a59-9f50-8bf0bcf89a9b" />
 
 
 Ejemplo de request
