@@ -17,15 +17,23 @@ TECH_KEYWORDS = {
     "aws": "AWS",
     "gcp": "GCP",
     "azure": "Azure",
+    "spring": "Spring Boot",
+    "spring boot": "Spring Boot",
+    "java": "Java",
+    "javascript": "JavaScript",
+    "typescript": "TypeScript",
+    "html": "HTML",
+    "css": "CSS",
 }
 
 ROLE_KEYWORDS = {
     "Backend Developer": [
         "backend", "api", "fastapi", "django", "flask",
-        "postgres", "postgresql", "mysql", "redis"
+        "postgres", "postgresql", "mysql", "redis", "spring", "java"
     ],
     "Frontend Developer": [
-        "frontend", "react", "next", "nextjs", "vue", "angular", "ui", "ux"
+        "frontend", "react", "next", "nextjs", "vue", "angular",
+        "ui", "ux", "html", "css", "javascript", "typescript"
     ],
     "DevOps Engineer": [
         "docker", "kubernetes", "ci/cd", "devops", "aws", "gcp", "azure", "terraform"
@@ -44,7 +52,7 @@ def count_hashtags(text: str) -> int:
 
 
 def extract_hashtags(text: str) -> list[str]:
-    return re.findall(r"#\w+", text)
+    return re.findall(r"#\w+", text.lower())
 
 
 def detect_technologies(text: str) -> list[str]:
@@ -70,29 +78,42 @@ def detect_role_from_post(text: str) -> str:
         scores[role] = score
 
     best_role = max(scores, key=scores.get)
+    best_score = scores[best_role]
 
-    if scores[best_role] == 0:
+    if best_score == 0:
+        return "General Software Developer"
+
+    tied_roles = [role for role, score in scores.items() if score == best_score]
+    if len(tied_roles) > 1:
         return "General Software Developer"
 
     return best_role
 
 
 def analyze_hook(first_line: str) -> int:
+    score = 40
+    first_line_lower = first_line.lower()
     length = len(first_line)
 
-    if length < 60:
-        return 90
-    elif length < 100:
-        return 75
-    elif length < 140:
-        return 60
-    else:
-        return 40
+    if length < 80:
+        score += 20
+    elif length < 120:
+        score += 10
+
+    if "?" in first_line:
+        score += 10
+
+    if re.search(r"\b\d+\b", first_line):
+        score += 10
+
+    if any(word in first_line_lower for word in ["hoy", "aprendí", "descubrí", "construí", "lancé"]):
+        score += 10
+
+    return min(score, 100)
 
 
 def analyze_readability(text: str) -> int:
-    lines = text.split("\n")
-    lines = [l for l in lines if l.strip() != ""]
+    lines = [l.strip() for l in text.split("\n") if l.strip()]
 
     if not lines:
         return 20
@@ -111,26 +132,77 @@ def analyze_readability(text: str) -> int:
 
 def analyze_story_structure(text: str) -> int:
     score = 0
-    lines = [l for l in text.split("\n") if l.strip() != ""]
+    text_lower = text.lower()
+    lines = [l.strip() for l in text.split("\n") if l.strip()]
 
     if lines and len(lines[0]) < 80:
-        score += 25
+        score += 20
 
     if len(lines) >= 3:
-        score += 25
+        score += 20
 
-    if any(word in text.lower() for word in ["aprendí", "descubrí", "me di cuenta"]):
-        score += 25
+    if any(word in text_lower for word in ["aprendí", "descubrí", "me di cuenta", "empecé", "hoy", "finalmente"]):
+        score += 30
 
     if "?" in text:
-        score += 25
+        score += 15
 
-    return score
+    if any(word in text_lower for word in ["problema", "solución", "resultado", "proceso"]):
+        score += 15
+
+    return min(score, 100)
+
+
+def build_suggested_hashtags(technologies: list[str], role_detected: str) -> list[str]:
+    tags = set()
+
+    role_map = {
+        "Backend Developer": ["#backend", "#apidevelopment"],
+        "Frontend Developer": ["#frontend", "#webdevelopment"],
+        "DevOps Engineer": ["#devops", "#cloud"],
+        "Data Engineer": ["#dataengineering", "#bigdata"],
+        "AI Engineer": ["#ai", "#machinelearning"],
+        "General Software Developer": ["#softwareengineering", "#programming"],
+    }
+
+    tech_map = {
+        "Python": "#python",
+        "FastAPI": "#fastapi",
+        "Django": "#django",
+        "Flask": "#flask",
+        "React": "#reactjs",
+        "Node.js": "#nodejs",
+        "Docker": "#docker",
+        "Kubernetes": "#kubernetes",
+        "PostgreSQL": "#postgresql",
+        "MySQL": "#mysql",
+        "Redis": "#redis",
+        "AWS": "#aws",
+        "GCP": "#gcp",
+        "Azure": "#azure",
+        "Spring Boot": "#springboot",
+        "Java": "#java",
+        "JavaScript": "#javascript",
+        "TypeScript": "#typescript",
+        "HTML": "#html",
+        "CSS": "#css",
+    }
+
+    for tag in role_map.get(role_detected, []):
+        tags.add(tag)
+
+    for tech in technologies:
+        if tech in tech_map:
+            tags.add(tech_map[tech])
+
+    tags.add("#buildinpublic")
+
+    return list(tags)[:5]
 
 
 def analyze_post_text(text: str) -> PostAnalyzeResponse:
     text = text.strip()
-    lines = [l for l in text.split("\n") if l.strip() != ""]
+    lines = [l.strip() for l in text.split("\n") if l.strip()]
 
     first_line = lines[0] if lines else text
 
@@ -148,36 +220,27 @@ def analyze_post_text(text: str) -> PostAnalyzeResponse:
     improvement_tips = []
 
     if len(first_line) > 60:
-        improvement_tips.append(
-            "Acorta la primera línea para hacer el hook más fuerte"
-        )
+        improvement_tips.append("Acorta la primera línea para hacer el hook más fuerte")
 
     if readability_score < 80:
-        improvement_tips.append(
-            "Usa líneas más cortas para mejorar la lectura en LinkedIn"
-        )
+        improvement_tips.append("Usa líneas más cortas para mejorar la lectura en LinkedIn")
 
     if hashtags_count == 0:
-        improvement_tips.append(
-            "Añade entre 3 y 5 hashtags relevantes"
-        )
+        improvement_tips.append("Añade entre 3 y 5 hashtags relevantes")
 
     if len(text) < 80:
-        improvement_tips.append(
-            "Agrega más contexto o valor al contenido del post"
-        )
+        improvement_tips.append("Agrega más contexto o valor al contenido del post")
 
-    suggested_hashtags = [
-        "#backend",
-        "#python",
-        "#fastapi",
-        "#softwareengineering",
-        "#buildinpublic",
-    ]
+    if "?" not in text:
+        improvement_tips.append("Agregar una pregunta al final puede aumentar la interacción")
 
-    suggested_hashtags = [
-        h for h in suggested_hashtags if h not in existing_hashtags
-    ]
+    if len(lines) < 3:
+        improvement_tips.append("Divide el post en más bloques para mejorar la estructura visual")
+
+    improvement_tips = list(dict.fromkeys(improvement_tips))
+
+    suggested_hashtags = build_suggested_hashtags(technologies, role_detected)
+    suggested_hashtags = [h for h in suggested_hashtags if h.lower() not in existing_hashtags]
 
     return PostAnalyzeResponse(
         viral_score=viral_score,

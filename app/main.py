@@ -15,8 +15,3 @@ app.include_router(posts_router)
 @app.get("/")
 def root():
     return {"message": "PostPilot API running"}
-
-
-@app.get("/routes")
-def list_routes():
-    return [route.path for route in app.routes]
